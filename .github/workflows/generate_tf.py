@@ -1,7 +1,11 @@
 import yaml
 import os
+import sys
+import traceback
 
 try:
+    os.chdir(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
     # Find the YAML file (excluding template.yml)
     yaml_files = [f for f in os.listdir('.') if f.endswith('.yml') and f != 'template.yml']
     if not yaml_files:
@@ -82,6 +86,9 @@ try:
       description = "The client secret for the {config['app_name']} App"
     }}
     """
+
+    # Change back to the workflows directory
+    os.chdir(os.path.dirname(__file__))
 
     # Write the Terraform configuration to a file
     with open('main.tf', 'w') as file:
