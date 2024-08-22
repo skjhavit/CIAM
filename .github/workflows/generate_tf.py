@@ -2,7 +2,16 @@ import yaml
 import os
 import sys
 import traceback
+import json
 
+def format_terraform_value(value):
+    if isinstance(value, list):
+        return json.dumps(value)
+    elif isinstance(value, str):
+        return f'"{value}"'
+    else:
+        return value
+        
 try:
     os.chdir(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
@@ -41,29 +50,29 @@ try:
     }}
 
     resource "okta_app_oauth" "dxp_app" {{
-      label             = "{config['label']}"
-      type              = "{config['type']}"
+      label             = {format_terraform_value(config['label'])}
+      type              = {format_terraform_value(config['type'])}
       grant_types       = ["implicit", "authorization_code"]
-      response_types    = {config['response_types']}
-      redirect_uris     = {config['redirect_uris']}
-      post_logout_redirect_uris = {config.get('post_logout_redirect_uris', [])}
-      client_uri        = "{config.get('client_uri', '')}"
-      tos_uri           = "{config.get('tos_uri', '')}"
-      policy_uri        = "{config.get('policy_uri', '')}"
+      response_types    = {format_terraform_value(config['response_types'])}
+      redirect_uris     = {format_terraform_value(config['redirect_uris'])}
+      post_logout_redirect_uris = {format_terraform_value(config.get('post_logout_redirect_uris', []))}
+      client_uri        = {format_terraform_value(config.get('client_uri', ''))}
+      tos_uri           = {format_terraform_value(config.get('tos_uri', ''))}
+      policy_uri        = {format_terraform_value(config.get('policy_uri', ''))}
     }}
 
     resource "okta_group" "internal_users" {{
-      name        = "{config['groups'][0]}"
+      name        = {format_terraform_value(config['groups'][0])}
       description = "Internal users group for {config['app_name']} app"
     }}
 
     resource "okta_group" "external_users" {{
-      name        = "{config['groups'][1]}"
+      name        = {format_terraform_value(config['groups'][1])}
       description = "External users group for {config['app_name']} app"
     }}
 
     resource "okta_group" "deactivated_users" {{
-      name        = "{config['groups'][2]}"
+      name        = {format_terraform_value(config['groups'][2])}
       description = "Deactivated users group for {config['app_name']} app"
     }}
 
