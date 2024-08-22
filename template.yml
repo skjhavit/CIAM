@@ -29,3 +29,7 @@ groups:
   - "DXP_APPNAME_INTERNALUSERS"
   - "DXP_APPNAME_EXTERNALUSERS"
   - "DXP_APPNAME_DEACTIVELUSERS"
+
+client_uri: "https://sudhanshujha.us"
+tos_uri: "https://sudhanshujha.us/automated/tos"
+policy_uri: "https://sudhanshujha.us/automated/privacy"

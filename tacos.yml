@@ -29,3 +29,7 @@ groups:
   - "DXP_TACOS_INTERNALUSERS"
   - "DXP_TACOS_EXTERNALUSERS"
   - "DXP_TACOS_DEACTIVELUSERS"
+
+client_uri: "https://sudhanshujha.us"
+tos_uri: "https://sudhanshujha.us/automated/tos"
+policy_uri: "https://sudhanshujha.us/automated/privacy"

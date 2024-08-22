@@ -22,15 +22,44 @@ jobs:
       run: |
         python -m pip install pyyaml
 
+    - name: Check environment variables
+      run: |
+        if [ -z "$OKTA_API_TOKEN" ]; then
+          echo "OKTA_API_TOKEN is not set"
+          exit 1
+        fi
+      env:
+        OKTA_API_TOKEN: ${{ secrets.OKTA_API_TOKEN }}
+
     - name: Parse YAML and generate Terraform configuration
       run: |
         python generate_tf.py
+      env:
+        OKTA_API_TOKEN: ${{ secrets.OKTA_API_TOKEN }}
+
+    - name: Display generated Terraform configuration
+      run: cat main.tf
 
     - name: Set up Terraform
       uses: hashicorp/setup-terraform@v1
 
     - name: Initialize Terraform
-      run: terraform init
+      run: terraform init -input=false -no-color
+
+    - name: Terraform Plan
+      run: terraform plan -input=false -no-color
 
     - name: Apply Terraform
-      run: terraform apply -auto-approve
+      run: |
+        echo "## Terraform Apply Results" >> $GITHUB_STEP_SUMMARY
+        terraform apply -auto-approve -input=false -no-color 2>&1 | tee terraform_apply.log
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        cat terraform_apply.log >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+
+    - name: Upload Terraform logs
+      uses: actions/upload-artifact@v2
+      if: always()
+      with:
+        name: terraform-logs
+        path: terraform_apply.log
