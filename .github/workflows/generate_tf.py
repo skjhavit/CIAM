@@ -51,8 +51,8 @@ try:
     """
 
     # Determine the scenario and generate the corresponding Terraform resources
-    scenario = config['scenarios'][0]
-    scenario_name = scenario['name']
+    config = config['scenarios'][0]
+    scenario_name = config['name']
     
     if scenario_name == 'create_application_and_group':
         # Add the Okta application resource
