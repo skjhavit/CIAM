@@ -127,25 +127,21 @@ try:
         """
 
     elif scenario_name == 'add_redirect_uris':
-# Add the new redirect URIs to the existing application
-      for index, uri in enumerate(config['redirect_uris']['sign_in']):
-          tf_config += f"""
-          resource "okta_app_oauth_redirect_uri" "login_uri_{index}" {{
-            app_id = {format_terraform_value(config['application_id'])}
-            uri    = {format_terraform_value(uri)}
-            type   = "LOGIN"
-          }}
-          """
+      # Add the new redirect URIs to the existing application
+      tf_config += f"""
+      resource "okta_app_oauth" "update_dxp_app_redirects" {{
+        app_id = {format_terraform_value(config['application_id'])}
+        redirect_uris = {format_terraform_value(config['redirect_uris']['sign_in'])}
+      }}
+      """
 
       if 'post_logout_redirect_uris' in config and 'sign_out' in config['post_logout_redirect_uris']:
-          for index, uri in enumerate(config['post_logout_redirect_uris']['sign_out']):
-              tf_config += f"""
-              resource "okta_app_oauth_redirect_uri" "logout_uri_{index}" {{
-                app_id = {format_terraform_value(config['application_id'])}
-                uri    = {format_terraform_value(uri)}
-                type   = "LOGOUT"
-              }}
-              """
+          tf_config += f"""
+          resource "okta_app_oauth" "update_dxp_app_post_logout_redirects" {{
+            app_id = {format_terraform_value(config['application_id'])}
+            post_logout_redirect_uris = {format_terraform_value(config['post_logout_redirect_uris']['sign_out'])}
+          }}
+          """
 
     else:
         raise ValueError(f"Unknown scenario: {scenario_name}")
