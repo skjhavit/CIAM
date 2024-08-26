@@ -11,7 +11,7 @@ def format_terraform_value(value):
         return f'"{value}"'
     else:
         return value
-        
+
 try:
     os.chdir(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
@@ -32,7 +32,7 @@ try:
     if not okta_api_token:
         raise ValueError("Okta API token is not set")
 
-    # Generate the Terraform configuration
+    # Initialize the Terraform configuration with the required provider settings
     tf_config = f"""
     terraform {{
       required_providers {{
@@ -48,53 +48,95 @@ try:
       base_url   = "okta.com"
       api_token  = "{okta_api_token}"
     }}
-
-    resource "okta_app_oauth" "dxp_app" {{
-      label             = {format_terraform_value(config['label'])}
-      type              = {format_terraform_value(config['type'])}
-      grant_types       = ["implicit", "authorization_code"]
-      response_types    = {format_terraform_value(config['response_types'])}
-      redirect_uris     = {format_terraform_value(config['redirect_uris'])}
-      post_logout_redirect_uris = {format_terraform_value(config.get('post_logout_redirect_uris', []))}
-      client_uri        = {format_terraform_value(config.get('client_uri', ''))}
-      tos_uri           = {format_terraform_value(config.get('tos_uri', ''))}
-      policy_uri        = {format_terraform_value(config.get('policy_uri', ''))}
-    }}
-
-    resource "okta_group" "internal_users" {{
-      name        = {format_terraform_value(config['groups'][0])}
-      description = "Internal users group for {config['app_name']} app"
-    }}
-
-    resource "okta_group" "external_users" {{
-      name        = {format_terraform_value(config['groups'][1])}
-      description = "External users group for {config['app_name']} app"
-    }}
-
-    resource "okta_group" "deactivated_users" {{
-      name        = {format_terraform_value(config['groups'][2])}
-      description = "Deactivated users group for {config['app_name']} app"
-    }}
-
-    resource "okta_app_group_assignments" "dxp_app_assignments" {{
-      app_id = okta_app_oauth.dxp_app.id
-      group {{
-        id = okta_group.internal_users.id
-      }}
-      group {{
-        id = okta_group.external_users.id
-      }}
-      group {{
-        id = okta_group.deactivated_users.id
-      }}
-    }}
-
-    output "dxp_app_client_secret" {{
-      value       = okta_app_oauth.dxp_app.client_secret
-      sensitive   = true
-      description = "The client secret for the {config['app_name']} App"
-    }}
     """
+
+    # Determine the scenario and generate the corresponding Terraform resources
+    scenario_name = config.get('name')
+    
+    if scenario_name == 'create_application_and_group':
+        # Add the Okta application resource
+        tf_config += f"""
+        resource "okta_app_oauth" "dxp_app" {{
+          label             = {format_terraform_value(config['label'])}
+          type              = {format_terraform_value(config['type'])}
+          grant_types       = ["implicit", "authorization_code"]
+          response_types    = {format_terraform_value(config['response_types'])}
+          redirect_uris     = {format_terraform_value(config['redirect_uris'])}
+          post_logout_redirect_uris = {format_terraform_value(config.get('post_logout_redirect_uris', []))}
+          client_uri        = {format_terraform_value(config.get('client_uri', ''))}
+          tos_uri           = {format_terraform_value(config.get('tos_uri', ''))}
+          policy_uri        = {format_terraform_value(config.get('policy_uri', ''))}
+        }}
+        """
+
+        # Dynamically generate group resources based on the groups provided in the YAML file
+        for index, group_name in enumerate(config['groups']):
+            tf_config += f"""
+            resource "okta_group" "group_{index}" {{
+              name        = {format_terraform_value(group_name)}
+              description = "Group {index + 1} for {config['app_name']} app"
+            }}
+            """
+
+        # Dynamically assign the groups to the application
+        tf_config += f"""
+        resource "okta_app_group_assignments" "dxp_app_assignments" {{
+          app_id = okta_app_oauth.dxp_app.id
+        """
+        for index in range(len(config['groups'])):
+            tf_config += f"""
+          group {{
+            id = okta_group.group_{index}.id
+          }}"""
+        tf_config += """
+        }
+        """
+
+        # Output the client secret for the application
+        tf_config += f"""
+        output "dxp_app_client_secret" {{
+          value       = okta_app_oauth.dxp_app.client_secret
+          sensitive   = true
+          description = "The client secret for the {config['app_name']} App"
+        }}
+        """
+
+    elif scenario_name == 'create_group_for_existing_application':
+        # Dynamically generate group resources for an existing application
+        for index, group_name in enumerate(config['groups']):
+            tf_config += f"""
+            resource "okta_group" "group_{index}" {{
+              name        = {format_terraform_value(group_name)}
+              description = "Group {index + 1} for existing application {config['application_id']}"
+            }}
+            """
+
+        # Dynamically assign the new groups to the existing application
+        tf_config += f"""
+        resource "okta_app_group_assignments" "new_dxp_app_assignments" {{
+          app_id = "{config['application_id']}"
+        """
+        for index in range(len(config['groups'])):
+            tf_config += f"""
+          group {{
+            id = okta_group.group_{index}.id
+          }}"""
+        tf_config += """
+        }
+        """
+
+    elif scenario_name == 'add_redirect_uris':
+        # Add the new redirect URIs to the existing application
+        tf_config += f"""
+        resource "okta_app_oauth" "update_dxp_app_redirects" {{
+          application_id        = "{config['application_id']}"
+          redirect_uris         = {format_terraform_value(config['redirect_uris']['sign_in'])}
+          post_logout_redirect_uris = {format_terraform_value(config.get('post_logout_redirect_uris', {}).get('sign_out', []))}
+        }}
+        """
+
+    else:
+        raise ValueError(f"Unknown scenario: {scenario_name}")
 
     # Change back to the workflows directory
     os.chdir(os.path.dirname(__file__))
@@ -104,7 +146,6 @@ try:
         file.write(tf_config)
 
 except Exception as e:
-    print('lalalalalalalalaalalalalalalalalalalalalalalala')
     print(f"Error: {e}")
     print("Traceback:")
     traceback.print_exc()
