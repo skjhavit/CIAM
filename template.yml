@@ -1,4 +1,4 @@
-# app_name: The name of the application (required)
+# app_name: The name of the application (requiredd)
 app_name: "Example App"
 
 # label: The label for the Okta app (required)
