@@ -56,7 +56,7 @@ scenarios:
   #     - "DXP_TACOS_DEACTIVELUSERS"
 
   # Uncomment the block below for Scenario 2: Create Groups for an Existing Application
-  - name: create_group_for_existing_application
+  # - name: create_group_for_existing_application
   
    # # application_id: The unique ID of the existing Okta application (required)
    #  application_id: "0oalw1jv0tX2aWjZL4x7"
